@@ -18,6 +18,11 @@ jobs:
       - run: npx cap add android
       
       - run: npx cap sync android
+      - run: echo "===MANIFEST===" && cat android/app/src/main/AndroidManifest.xml
+
+      - run: echo "===GRADLE===" && cat android/app/build.gradle
+
+      - run: echo "===MAINACTIVITY===" && find android/app/src/main/java -name "MainActivity.java" -exec cat {} \;
 
       - uses: android-actions/setup-android@v3
 
