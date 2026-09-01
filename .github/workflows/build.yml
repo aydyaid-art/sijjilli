@@ -25,6 +25,45 @@ jobs:
       - run: echo "===MAINACTIVITY===" && find android/app/src/main/java -name "MainActivity.java" -exec cat {} \;
 
       - uses: android-actions/setup-android@v3
+      - run: |
+          mkdir -p android/app/src/main/java/com/aydyaidart/sijjilli
+          cat > android/app/src/main/java/com/aydyaidart/sijjilli/MainActivity.java << 'EOF'
+          package com.aydyaidart.sijjilli;
+          import android.os.Bundle;
+          import com.getcapacitor.BridgeActivity;
+          import java.io.File;
+          import java.io.FileWriter;
+          import java.io.PrintWriter;
+          import java.io.StringWriter;
+          public class MainActivity extends BridgeActivity {
+              @Override
+              protected void onCreate(Bundle savedInstanceState) {
+                  Thread.setDefaultUncaughtExceptionHandler((thread, throwable) -> {
+                      try {
+                          File f = new File(getExternalFilesDir(null), "crash_log.txt");
+                          StringWriter sw = new StringWriter();
+                          throwable.printStackTrace(new PrintWriter(sw));
+                          FileWriter fw = new FileWriter(f);
+                          fw.write(sw.toString());
+                          fw.close();
+                      } catch (Exception e) {}
+                      System.exit(1);
+                  });
+                  try {
+                      super.onCreate(savedInstanceState);
+                  } catch (Throwable t) {
+                      try {
+                          File f = new File(getExternalFilesDir(null), "crash_log.txt");
+                          StringWriter sw = new StringWriter();
+                          t.printStackTrace(new PrintWriter(sw));
+                          FileWriter fw = new FileWriter(f);
+                          fw.write(sw.toString());
+                          fw.close();
+                      } catch (Exception e) {}
+                  }
+              }
+          }
+          EOF
 
       - run: cd android && chmod +x gradlew && ./gradlew assembleDebug
 
