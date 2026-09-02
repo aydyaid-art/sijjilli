@@ -30,36 +30,45 @@ jobs:
           cat > android/app/src/main/java/com/aydyaidart/sijjilli/MainActivity.java << 'EOF'
           package com.aydyaidart.sijjilli;
           import android.os.Bundle;
+          import android.content.ContentValues;
+          import android.provider.MediaStore;
+          import android.net.Uri;
           import com.getcapacitor.BridgeActivity;
-          import java.io.File;
-          import java.io.FileWriter;
+          import java.io.OutputStream;
           import java.io.PrintWriter;
           import java.io.StringWriter;
           public class MainActivity extends BridgeActivity {
+              private void saveCrashLog(String content) {
+                  try {
+                      ContentValues values = new ContentValues();
+                      values.put(MediaStore.Downloads.DISPLAY_NAME, "crash_log.txt");
+                      values.put(MediaStore.Downloads.MIME_TYPE, "text/plain");
+                      values.put(MediaStore.Downloads.IS_PENDING, 1);
+                      Uri uri = getContentResolver().insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values);
+                      if (uri != null) {
+                          OutputStream os = getContentResolver().openOutputStream(uri);
+                          os.write(content.getBytes());
+                          os.close();
+                          values.clear();
+                          values.put(MediaStore.Downloads.IS_PENDING, 0);
+                          getContentResolver().update(uri, values, null, null);
+                      }
+                  } catch (Exception e) {}
+              }
               @Override
               protected void onCreate(Bundle savedInstanceState) {
                   Thread.setDefaultUncaughtExceptionHandler((thread, throwable) -> {
-                      try {
-                          File f = new File(getExternalFilesDir(null), "crash_log.txt");
-                          StringWriter sw = new StringWriter();
-                          throwable.printStackTrace(new PrintWriter(sw));
-                          FileWriter fw = new FileWriter(f);
-                          fw.write(sw.toString());
-                          fw.close();
-                      } catch (Exception e) {}
+                      StringWriter sw = new StringWriter();
+                      throwable.printStackTrace(new PrintWriter(sw));
+                      saveCrashLog(sw.toString());
                       System.exit(1);
                   });
                   try {
                       super.onCreate(savedInstanceState);
                   } catch (Throwable t) {
-                      try {
-                          File f = new File(getExternalFilesDir(null), "crash_log.txt");
-                          StringWriter sw = new StringWriter();
-                          t.printStackTrace(new PrintWriter(sw));
-                          FileWriter fw = new FileWriter(f);
-                          fw.write(sw.toString());
-                          fw.close();
-                      } catch (Exception e) {}
+                      StringWriter sw = new StringWriter();
+                      t.printStackTrace(new PrintWriter(sw));
+                      saveCrashLog(sw.toString());
                   }
               }
           }
